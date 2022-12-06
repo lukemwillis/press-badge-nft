@@ -110,6 +110,37 @@ message set_approval_for_all_result {
    bool value = 1;
 }
 
+// @description Reserve a number of tokens for whitelist claiming
+// @read-only false
+message reserve_arguments {
+   uint64 amount = 1 [jstype = JS_STRING];
+}
+
+message reserve_result {
+   bool value = 1;
+}
+
+// @description Assign a number of reserved tokens to an address
+// @read-only false
+message whitelist_arguments {
+   bytes address = 1 [(koinos.btype) = ADDRESS];
+   uint64 amount = 2 [jstype = JS_STRING];
+}
+
+message whitelist_result {
+   bool value = 1;
+}
+
+// @description Checks whether address has been assigned any whitelist spots
+// @read-only true
+message is_whitelisted_arguments {
+   bytes address = 1 [(koinos.btype) = ADDRESS];
+}
+
+message is_whitelisted_result {
+   bool value = 1;
+}
+
 // events
 message mint_event {
    bytes to = 1 [(koinos.btype) = ADDRESS];

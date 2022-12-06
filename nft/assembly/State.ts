@@ -7,11 +7,20 @@ export namespace State {
   const BALANCE_SPACE_ID = 1;
   const OPERATOR_APPROVAL_SPACE_ID = 2;
   const TOKEN_APPROVAL_SPACE_ID = 3;
+  const SUPPLY_SPACE_ID = 4;
+  const RESERVED_SPACE_ID = 5;
+  const WHITELIST_SPACE_ID = 6;
+
+  const SUPPLY_KEY = new Uint8Array(0);
+  const RESERVED_KEY = new Uint8Array(0);
 
   let tokenSpace: chain.object_space | null = null;
   let balanceSpace: chain.object_space | null = null;
   let operatorApprovalSpace: chain.object_space | null = null;
   let tokenApprovalSpace: chain.object_space | null = null;
+  let supplySpace: chain.object_space | null = null;
+  let reservedSpace: chain.object_space | null = null;
+  let whitelistSpace: chain.object_space | null = null;
 
   function TokenSpace(): chain.object_space {
     if (tokenSpace == null) {
@@ -165,5 +174,87 @@ export namespace State {
 
   export function DeleteTokenApproval(tokenId: u64): void {
     System.removeObject(TokenApprovalSpace(), tokenId.toString());
+  }
+
+  function SupplySpace(): chain.object_space {
+    if (supplySpace == null) {
+      supplySpace = new chain.object_space(
+        false,
+        Constants.ContractId(),
+        SUPPLY_SPACE_ID
+      );
+    }
+    return supplySpace!;
+  }
+
+  export function GetSupply(): nft.balance_object {
+    const supply = System.getObject<Uint8Array, nft.balance_object>(SupplySpace(), SUPPLY_KEY, nft.balance_object.decode);
+
+    if (supply) {
+      return supply;
+    }
+
+    return new nft.balance_object();
+  }
+
+  export function SaveSupply(supply: nft.balance_object): void {
+    System.putObject(SupplySpace(), SUPPLY_KEY, supply, nft.balance_object.encode);
+  }
+
+  function ReservedSpace(): chain.object_space {
+    if (reservedSpace == null) {
+      reservedSpace = new chain.object_space(
+        false,
+        Constants.ContractId(),
+        RESERVED_SPACE_ID
+      );
+    }
+    return reservedSpace!;
+  }
+
+  export function GetReserved(): nft.balance_object {
+    const reserved = System.getObject<Uint8Array, nft.balance_object>(ReservedSpace(), RESERVED_KEY, nft.balance_object.decode);
+
+    if (reserved) {
+      return reserved;
+    }
+
+    return new nft.balance_object();
+  }
+
+  export function SaveReserved(reserved: nft.balance_object): void {
+    System.putObject(ReservedSpace(), RESERVED_KEY, reserved, nft.balance_object.encode);
+  }
+
+  function WhitelistSpace(): chain.object_space {
+    if (whitelistSpace == null) {
+      whitelistSpace = new chain.object_space(
+        false,
+        Constants.ContractId(),
+        WHITELIST_SPACE_ID
+      );
+    }
+    return whitelistSpace!;
+  }
+
+  export function GetWhitelist(address: Uint8Array): nft.balance_object {
+    const spots = System.getObject<Uint8Array, nft.balance_object>(
+      WhitelistSpace(),
+      address,
+      nft.balance_object.decode
+    );
+
+    if (spots) {
+      return spots;
+    }
+
+    return new nft.balance_object();
+  }
+
+  export function SaveWhitelist(
+    address: Uint8Array,
+    spots: nft.balance_object
+  ): void {
+    System.putObject(WhitelistSpace(), address, spots, nft.balance_object.encode);
   }
 }

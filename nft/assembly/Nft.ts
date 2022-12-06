@@ -2,6 +2,7 @@ import { Base58, Protobuf, System, SafeMath, authority } from "@koinos/sdk-as";
 import { Constants } from "./Constants";
 import { nft } from "./proto/nft";
 import { State } from "./State";
+import { Tokens } from "./Tokens";
 
 export class Nft {
   name(args: nft.name_arguments): nft.name_result {
@@ -73,11 +74,10 @@ export class Nft {
 
     const res = new nft.mint_result(false);
 
-    // only this contract can mint new tokens
-    System.requireAuthority(
-      authority.authorization_type.contract_call,
-      Constants.ContractId()
-    );
+    if (token_id < 1 || token_id > Constants.MAX) {
+      System.log("token id out of bounds");
+      return res;
+    }
 
     let token = State.GetToken(token_id);
 
@@ -87,6 +87,23 @@ export class Nft {
       return res;
     }
 
+    // check whitelist
+    const whitelist = State.GetWhitelist(to);
+    if (whitelist.value > 0) {
+      const reserved = State.GetReserved();
+      reserved.value = SafeMath.sub(reserved.value, 1);
+
+      whitelist.value = SafeMath.sub(whitelist.value, 1);
+
+      State.SaveReserved(reserved);
+      State.SaveWhitelist(to, whitelist);
+    } else {
+      System.require(
+        Tokens.Koin().transfer(to, Constants.ContractId(), Constants.PRICE),
+        "Failed to transfer KOIN"
+      );
+    }
+
     // assign the new token's owner
     token = new nft.token_object(to);
 
@@ -94,8 +111,13 @@ export class Nft {
     const balance = State.GetBalance(to);
     balance.value = SafeMath.add(balance.value, 1);
 
+    // increment supply
+    const supply = State.GetSupply();
+    supply.value = SafeMath.add(supply.value, 1);
+
     State.SaveBalance(to, balance);
     State.SaveToken(token_id, token);
+    State.SaveSupply(supply);
 
     // generate event
     const mintEvent = new nft.mint_event(to, token_id);
@@ -306,5 +328,48 @@ export class Nft {
     res.value = true;
 
     return res;
+  }
+
+  reserve(args: nft.reserve_arguments): nft.reserve_result {
+    System.requireAuthority(
+      authority.authorization_type.contract_call,
+      Constants.ContractId()
+    );
+
+    const reserved = State.GetReserved();
+
+    State.SaveReserved(
+      new nft.balance_object(args.amount + (reserved.value || 0))
+    );
+
+    return new nft.reserve_result(true);
+  }
+
+  whitelist(args: nft.whitelist_arguments): nft.whitelist_result {
+    System.requireAuthority(
+      authority.authorization_type.contract_call,
+      Constants.ContractId()
+    );
+
+    const whitelist = State.GetWhitelist(args.address!);
+
+    State.SaveWhitelist(
+      args.address!,
+      new nft.balance_object(args.amount + (whitelist.value || 0))
+    );
+
+    return new nft.whitelist_result(true);
+  }
+
+  is_whitelisted(
+    args: nft.is_whitelisted_arguments
+  ): nft.is_whitelisted_result {
+    const whitelist = State.GetWhitelist(args.address!);
+
+    if (whitelist) {
+      return new nft.is_whitelisted_result(whitelist.value > 0);
+    }
+
+    return new nft.is_whitelisted_result(false);
   }
 }
