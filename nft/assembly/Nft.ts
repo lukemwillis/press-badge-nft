@@ -1,4 +1,4 @@
-import { Base58, Protobuf, System, SafeMath, authority } from "@koinos/sdk-as";
+import { Protobuf, System, SafeMath, authority, Arrays } from "@koinos/sdk-as";
 import { Constants } from "./Constants";
 import { nft } from "./proto/nft";
 import { State } from "./State";
@@ -64,44 +64,31 @@ export class Nft {
   owner_of(args: nft.owner_of_arguments): nft.owner_of_result {
     const token_id = args.token_id;
     const res = new nft.owner_of_result();
-
     const token = State.GetToken(token_id);
-
     if (token) {
       res.value = token.owner;
     }
-
     return res;
   }
 
   get_approved(args: nft.get_approved_arguments): nft.get_approved_result {
     const token_id = args.token_id;
-
     const res = new nft.get_approved_result();
-
     const approval = State.GetTokenApproval(token_id);
-
     if (approval) {
       res.value = approval.address;
     }
-
     return res;
   }
 
-  is_approved_for_all(
-    args: nft.is_approved_for_all_arguments
-  ): nft.is_approved_for_all_result {
+  is_approved_for_all(args: nft.is_approved_for_all_arguments): nft.is_approved_for_all_result {
     const owner = args.owner as Uint8Array;
     const operator = args.operator as Uint8Array;
-
     const res = new nft.is_approved_for_all_result();
-
     const approval = State.GetOperatorApproval(owner, operator);
-
     if (approval) {
       res.value = approval.approved;
     }
-
     return res;
   }
 
@@ -179,8 +166,6 @@ export class Nft {
     const to = args.to as Uint8Array;
     const token_id = args.token_id;
 
-    const b58From = Base58.encode(from);
-
     const res = new nft.transfer_result(false);
 
     // require authority of the from address
@@ -194,10 +179,7 @@ export class Nft {
       return res;
     }
 
-    const owner = token.owner as Uint8Array;
-    const b58Owner = Base58.encode(owner);
-
-    if (b58Owner != b58From) {
+    if (!Arrays.equal(from, token.owner)) {
       let isTokenApproved = false;
 
       const tokenApproval = State.GetTokenApproval(token_id);
@@ -205,11 +187,11 @@ export class Nft {
       if (tokenApproval) {
         const approvedAddress = tokenApproval.address as Uint8Array;
 
-        isTokenApproved = Base58.encode(approvedAddress) == b58From;
+        isTokenApproved = !!Arrays.equal(approvedAddress, from);
       }
 
       if (!isTokenApproved) {
-        const operatorApproval = State.GetOperatorApproval(owner, from);
+        const operatorApproval = State.GetOperatorApproval(token.owner!, from);
 
         if (!operatorApproval.approved) {
           System.log("transfer caller is not owner nor approved");
@@ -255,7 +237,6 @@ export class Nft {
     const approver_address = args.approver_address as Uint8Array;
     const to = args.to as Uint8Array;
     const token_id = args.token_id;
-
     const res = new nft.approve_result(false);
 
     // require authority of the approver_address
@@ -266,27 +247,21 @@ export class Nft {
 
     // check that the token exists
     let token = State.GetToken(token_id);
-
     if (!token) {
       System.log("nonexistent token");
       return res;
     }
 
-    const owner = token.owner as Uint8Array;
-    const b58Owner = Base58.encode(owner);
-
     // check that the to is not the owner
-    if (Base58.encode(to) == b58Owner) {
+    if(Arrays.equal(token.owner, to)) {
       System.log("approve to current owner");
-
       return res;
     }
 
     // check that the approver_address is allowed to approve the token
-    if (Base58.encode(approver_address) != b58Owner) {
-      const approval = State.GetOperatorApproval(owner, approver_address);
-
-      if (!approval.approved) {
+    if(!Arrays.equal(token.owner, approver_address)) {
+      let approval = State.GetOperatorApproval(token.owner!, approver_address);
+      if (!approval || !approval.approved) {
         System.log("approver_address is not owner nor approved");
         return res;
       }
@@ -294,12 +269,9 @@ export class Nft {
 
     // update approval
     let approval = State.GetTokenApproval(token_id);
-
     if (!approval) {
-      approval = new nft.token_approval_object();
+      approval = new nft.token_approval_object(to);
     }
-
-    approval.address = to;
     State.SaveTokenApproval(token_id, approval);
 
     // generate event
@@ -309,7 +281,6 @@ export class Nft {
       token_id
     );
     const impacted = [to, approver_address];
-
     System.event(
       "nft.token_approval",
       Protobuf.encode(approvalEvent, nft.token_approval_event.encode),
@@ -317,17 +288,13 @@ export class Nft {
     );
 
     res.value = true;
-
     return res;
   }
 
-  set_approval_for_all(
-    args: nft.set_approval_for_all_arguments
-  ): nft.set_approval_for_all_result {
+  set_approval_for_all(args: nft.set_approval_for_all_arguments): nft.set_approval_for_all_result {
     const approver_address = args.approver_address as Uint8Array;
     const operator_address = args.operator_address as Uint8Array;
     const approved = args.approved;
-
     const res = new nft.set_approval_for_all_result(false);
 
     // only the owner of approver_address can approve an operator for his account
@@ -337,17 +304,16 @@ export class Nft {
     );
 
     // check that the approver_address is not the address to approve
-    if (Base58.encode(approver_address) == Base58.encode(operator_address)) {
+    if(Arrays.equal(approver_address, operator_address)) {
       System.log("approve to operator_address");
-
       return res;
     }
 
     // update the approval
-    const approval = State.GetOperatorApproval(
-      approver_address,
-      operator_address
-    );
+    let approval = State.GetOperatorApproval(approver_address, operator_address);
+    if(!approval) {
+      approval = new nft.operator_approval_object();
+    }
     approval.approved = approved;
     State.SaveOperatorApproval(approver_address, operator_address, approval);
 
@@ -358,7 +324,6 @@ export class Nft {
       approved
     );
     const impacted = [operator_address, approver_address];
-
     System.event(
       "nft.operator_approval",
       Protobuf.encode(approvalEvent, nft.operator_approval_event.encode),
@@ -366,7 +331,6 @@ export class Nft {
     );
 
     res.value = true;
-
     return res;
   }
 
