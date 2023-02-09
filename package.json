@@ -19,8 +19,6 @@
     "lint": "eslint --max-warnings 0 --ext ts \"*/assembly/**/*.ts\"",
     "cleanupYarnLocks": "rimraf calculator/node_modules chat/node_modules token/node_modules controlled_contract_update/node_modules delegation/node_modules immutable/node_modules nft/node_modules staking/node_modules transaction_storage/node_modules",
     "buildNft": "cd nft && yarn install && koinos-sdk-as-cli build-all release 0 nft.proto",
-    "buildStaking": "cd staking && yarn install && koinos-sdk-as-cli build-all release 0 staking.proto",
-    "buildToken": "cd token && yarn install && koinos-sdk-as-cli build-all release 0 token.proto && koinos-sdk-as-cli run-tests",
     "buildAll": "yarn lint && yarn buildNft"
   }
 }

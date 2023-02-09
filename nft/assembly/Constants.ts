@@ -6,6 +6,7 @@ export namespace Constants {
   export const PRICE: u64 = 50000000000;
   export const MAX: u64 = 50;
   export const URI: string = "ipfs://bafybeial7korh5zldyo7qmz4kkeeo5tt7tybhd7jiorz2nx7iwvpzeadhi";
+  export const ROYALTIES: u64 = 5;
 
   let contractId: Uint8Array | null = null;
   let koinContractId: Uint8Array | null = null;

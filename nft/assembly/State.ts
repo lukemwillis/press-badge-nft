@@ -1,4 +1,4 @@
-import { chain, Protobuf, System } from "@koinos/sdk-as";
+import { Base58, chain, System } from "@koinos/sdk-as";
 import { Constants } from "./Constants";
 import { nft } from "./proto/nft";
 
@@ -99,15 +99,10 @@ export namespace State {
     approver: Uint8Array,
     operator: Uint8Array
   ): nft.operator_approval_object {
-    const approvalKey = new nft.operator_approval_key(approver, operator);
-    const keyBytes = Protobuf.encode(
-      approvalKey,
-      nft.operator_approval_key.encode
-    );
-
-    const approval = System.getObject<Uint8Array, nft.operator_approval_object>(
+    const key = `${Base58.encode(approver)}_${Base58.encode(operator)}`;
+    const approval = System.getObject<string, nft.operator_approval_object>(
       OperatorApprovalSpace(),
-      keyBytes,
+      key,
       nft.operator_approval_object.decode
     );
 
@@ -123,15 +118,10 @@ export namespace State {
     operator: Uint8Array,
     approval: nft.operator_approval_object
   ): void {
-    const approvalKey = new nft.operator_approval_key(approver, operator);
-    const keyBytes = Protobuf.encode(
-      approvalKey,
-      nft.operator_approval_key.encode
-    );
-
+    const key = `${Base58.encode(approver)}_${Base58.encode(operator)}`;
     System.putObject(
       OperatorApprovalSpace(),
-      keyBytes,
+      key,
       approval,
       nft.operator_approval_object.encode
     );

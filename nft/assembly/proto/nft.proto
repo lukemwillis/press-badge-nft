@@ -13,6 +13,15 @@ message name_result {
    string value = 1;
 }
 
+// @description Returns the token's uri
+// @read-only true
+message uri_arguments {
+}
+
+message uri_result {
+   string value = 1;
+}
+
 // @description Returns the token's symbol
 // @read-only true
 message symbol_arguments {
@@ -141,6 +150,60 @@ message is_whitelisted_result {
    bool value = 1;
 }
 
+// @description Gets the total number of minted tokens
+// @read-only true
+message total_supply_arguments {
+}
+
+message total_supply_result {
+   uint64 value = 1 [jstype = JS_STRING];
+}
+
+// @description Gets the total number of reserved tokens
+// @read-only true
+message total_reserved_arguments {
+}
+
+message total_reserved_result {
+   uint64 value = 1 [jstype = JS_STRING];
+}
+
+// @description Returns collection royalties
+// @read-only true
+message royalties_arguments {
+}
+
+message royalties_result {
+   repeated royalty_object value = 1;
+}
+
+// @description Unsupported
+// @read-only false
+message set_royalties_arguments {
+   repeated royalty_object value = 1;
+}
+
+message set_royalties_result {
+   bool value = 1;
+}
+
+// @description Returns collection owner
+// @read-only true
+message owner_arguments {
+}
+message owner_result {
+   bytes value = 1 [(koinos.btype) = ADDRESS];
+}
+
+// @description Unsupported
+// @read-only false
+message transfer_ownership_arguments {
+   bytes owner = 1 [(koinos.btype) = ADDRESS];
+}
+message transfer_ownership_result {
+   bool value = 1;
+}
+
 // events
 message mint_event {
    bytes to = 1 [(koinos.btype) = ADDRESS];
@@ -174,13 +237,13 @@ message balance_object {
    uint64 value = 1 [jstype = JS_STRING];
 }
 
-message token_approval_object {
-   bytes address = 1 [(koinos.btype) = ADDRESS];
+message royalty_object {
+   uint64 amount = 1 [jstype = JS_STRING];
+   bytes address = 2 [(koinos.btype) = ADDRESS];
 }
 
-message operator_approval_key{
-   bytes approver_address = 1 [(koinos.btype) = ADDRESS];
-   bytes operator_address = 2 [(koinos.btype) = ADDRESS];
+message token_approval_object {
+   bytes address = 1 [(koinos.btype) = ADDRESS];
 }
 
 message operator_approval_object {

@@ -13,6 +13,43 @@ export class Nft {
     return new nft.symbol_result(Constants.SYMBOL);
   }
 
+  uri(args: nft.uri_arguments): nft.uri_result {
+    return new nft.uri_result(Constants.URI);
+  }
+  
+  total_supply(args: nft.total_supply_arguments): nft.total_supply_result {
+    const supply = State.GetSupply();
+    return new nft.total_supply_result(supply.value);
+  }
+
+  total_reserved(
+    args: nft.total_reserved_arguments
+  ): nft.total_reserved_result {
+    const reserved = State.GetReserved();
+    return new nft.total_reserved_result(reserved.value);
+  }
+
+  royalties(args: nft.royalties_arguments): nft.royalties_result {
+    const res = new Array<nft.royalty_object>(1);
+    res[0] =new nft.royalty_object(Constants.ROYALTIES, Constants.ContractId());
+    return new nft.royalties_result(res);
+  }
+
+  set_royalties(args: nft.set_royalties_arguments): nft.set_royalties_result {
+    // not supported
+    return new nft.set_royalties_result(false);
+  }
+
+  owner(args: nft.owner_arguments): nft.owner_result {
+    return new nft.owner_result(Constants.ContractId());
+  }
+
+
+  transfer_ownership(args: nft.transfer_ownership_arguments): nft.transfer_ownership_result {
+    // not supported
+    return new nft.transfer_ownership_result(false);
+  }
+
   balance_of(args: nft.balance_of_arguments): nft.balance_of_result {
     const owner = args.owner as Uint8Array;
 
@@ -74,30 +111,33 @@ export class Nft {
 
     const res = new nft.mint_result(false);
 
-    if (token_id < 1 || token_id > Constants.MAX) {
-      System.log("token id out of bounds");
-      return res;
-    }
+    System.require(
+      token_id > 0 && token_id <= Constants.MAX,
+      "Token id out of bounds"
+    );
 
     let token = State.GetToken(token_id);
 
-    // check that the token has not already been minted
-    if (token) {
-      System.log("token already minted");
-      return res;
-    }
+    System.require(token == null, "Token already minted");
 
     // check whitelist
     const whitelist = State.GetWhitelist(to);
-    if (whitelist.value > 0) {
-      const reserved = State.GetReserved();
-      reserved.value = SafeMath.sub(reserved.value, 1);
+    const reserved = State.GetReserved();
 
+    if (whitelist.value > 0) {
+      reserved.value = SafeMath.sub(reserved.value, 1);
       whitelist.value = SafeMath.sub(whitelist.value, 1);
 
       State.SaveReserved(reserved);
       State.SaveWhitelist(to, whitelist);
     } else {
+      const supply = State.GetSupply();
+
+      System.require(
+        reserved.value + supply.value < Constants.MAX,
+        "Token is reserved for whitelist"
+      );
+
       System.require(
         Tokens.Koin().transfer(to, Constants.ContractId(), Constants.PRICE),
         "Failed to transfer KOIN"
