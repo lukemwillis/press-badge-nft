@@ -5,8 +5,7 @@ export namespace Constants {
   export const SYMBOL: string = "KPB";
   export const PRICE: u64 = 50000000000;
   export const MAX: u64 = 50;
-  // TODO reupload
-  export const URI: string = "ipfs://bafybeial7korh5zldyo7qmz4kkeeo5tt7tybhd7jiorz2nx7iwvpzeadhi";
+  export const URI: string = "ipfs://bafybeiaiynisgaa3eqf3bxuseh4yh4nzjz4g3nvocoh3zlz7eypjx3p5wm";
   export const ROYALTIES: u64 = 0;
 
   let contractId: Uint8Array | null = null;
