@@ -44,7 +44,7 @@ message balance_of_result {
 // @description Gets the owner of a token
 // @read-only true
 message owner_of_arguments {
-   uint64 token_id = 1 [jstype = JS_STRING];
+   bytes token_id = 1 [(koinos.btype) = HEX];
 }
 
 message owner_of_result {
@@ -54,7 +54,7 @@ message owner_of_result {
 // @description Gets approved address for a token
 // @read-only true
 message get_approved_arguments {
-   uint64 token_id = 1 [jstype = JS_STRING];
+   bytes token_id = 1 [(koinos.btype) = HEX];
 }
 
 message get_approved_result {
@@ -76,7 +76,7 @@ message is_approved_for_all_result {
 // @read-only false
 message mint_arguments {
    bytes to = 1 [(koinos.btype) = ADDRESS];
-   uint64 token_id = 2 [jstype = JS_STRING];
+   bytes token_id = 2 [(koinos.btype) = HEX];
 }
 
 message mint_result {
@@ -88,7 +88,7 @@ message mint_result {
 message transfer_arguments {
    bytes from = 1 [(koinos.btype) = ADDRESS];
    bytes to = 2 [(koinos.btype) = ADDRESS];
-   uint64 token_id = 3 [jstype = JS_STRING];
+   bytes token_id = 3 [(koinos.btype) = HEX];
 }
 
 message transfer_result {
@@ -100,7 +100,7 @@ message transfer_result {
 message approve_arguments {
    bytes approver_address = 1 [(koinos.btype) = ADDRESS];
    bytes to = 2 [(koinos.btype) = ADDRESS];
-   uint64 token_id = 3 [jstype = JS_STRING];
+   bytes token_id = 3 [(koinos.btype) = HEX];
 }
 
 message approve_result {
@@ -207,13 +207,13 @@ message transfer_ownership_result {
 // events
 message mint_event {
    bytes to = 1 [(koinos.btype) = ADDRESS];
-   uint64 id = 2 [jstype = JS_STRING];
+   bytes token_id = 2 [(koinos.btype) = HEX];
 }
 
 message transfer_event {
    bytes from = 1 [(koinos.btype) = ADDRESS];
    bytes to = 2 [(koinos.btype) = ADDRESS];
-   uint64 id = 3 [jstype = JS_STRING];
+   bytes token_id = 3 [(koinos.btype) = HEX];
 }
 
 message operator_approval_event {
@@ -225,7 +225,7 @@ message operator_approval_event {
 message token_approval_event {
    bytes approver_address = 1 [(koinos.btype) = ADDRESS];
    bytes to = 2 [(koinos.btype) = ADDRESS];
-   uint64 id = 3 [jstype = JS_STRING];
+   bytes token_id = 3 [(koinos.btype) = HEX];
 }
 
 // objects
