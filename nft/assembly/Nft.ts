@@ -5,6 +5,7 @@ import {
   authority,
   Arrays,
   StringBytes,
+  error,
 } from "@koinos/sdk-as";
 import { Constants } from "./Constants";
 import { nft } from "./proto/nft";
@@ -182,36 +183,41 @@ export class Nft {
 
     const res = new nft.transfer_result(false);
 
-    // require authority of the from address
-    System.requireAuthority(authority.authorization_type.contract_call, from);
+    System.require(to.length > 0, 'missing "to" argument');
 
     // check that the token exists
     let token = State.GetToken(token_id);
 
-    if (!token) {
-      System.log("nonexistent token");
-      return res;
-    }
+    System.require(token != null, `Token "${token_id}" does not exist`);
 
-    if (!Arrays.equal(from, token.owner)) {
-      let isTokenApproved = false;
+    System.require(Arrays.equal(token!.owner, from), `from is not the owner of "${token_id}"`, error.error_code.authorization_failure);
 
-      const tokenApproval = State.GetTokenApproval(token_id);
+    // caller is either empty or a contract id
+    const caller = System.getCaller().caller;
+    
+    if (!Arrays.equal(caller, from)) {
+      // check token authorizations
+      let isTokenApproved: bool = false;
 
-      if (tokenApproval) {
-        const approvedAddress = tokenApproval.address as Uint8Array;
+      // check if caller is approved for this name
+      const approvalAddress = State.GetTokenApproval(token_id);
 
-        isTokenApproved = !!Arrays.equal(approvedAddress, from);
+      if (approvalAddress && approvalAddress.address && approvalAddress.address!.length > 0) {
+        isTokenApproved = Arrays.equal(approvalAddress.address, caller);
       }
 
       if (!isTokenApproved) {
-        const operatorApproval = State.GetOperatorApproval(token.owner!, from);
+        // check if the caller is an approved operator
+        const operatorApproval = State.GetOperatorApproval(token!.owner!, caller!);
+        isTokenApproved = operatorApproval.approved;
 
-        if (!operatorApproval.approved) {
-          System.log("transfer caller is not owner nor approved");
-          return res;
+        if (!isTokenApproved) {
+          // otherwise check authority of "from"
+          isTokenApproved = System.checkAuthority(authority.authorization_type.contract_call, from);
         }
       }
+
+      System.require(isTokenApproved, 'from has not authorized transfer', error.error_code.authorization_failure);
     }
 
     // clear the token approval
@@ -229,8 +235,8 @@ export class Nft {
     State.SaveBalance(to, toBalance);
 
     // update token owner
-    token.owner = to;
-    State.SaveToken(token_id, token);
+    token!.owner = to;
+    State.SaveToken(token_id, token!);
 
     // generate event
     const transferEvent = new nft.transfer_event(from, to, args.token_id);
